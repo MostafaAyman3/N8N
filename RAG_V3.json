@@ -1,0 +1,550 @@
+{
+  "name": "RAG_V3",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1jI0nOJsSgV3g0GT8Dx24dsXc_E67_MSt",
+          "mode": "list",
+          "cachedResultName": "RAG",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1jI0nOJsSgV3g0GT8Dx24dsXc_E67_MSt"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        -64
+      ],
+      "id": "459c4f41-a460-4cce-969e-5c2b72b16a1c",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "BrB5fsFYaNmm4OZs",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "fileName": "={{ $json.name }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        48,
+        -64
+      ],
+      "id": "bb3a5411-e62e-4b00-bca9-0b77b7705683",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "BrB5fsFYaNmm4OZs",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "ragn8n",
+          "mode": "list",
+          "cachedResultName": "ragn8n"
+        },
+        "embeddingBatchSize": 1,
+        "options": {
+          "pineconeNamespace": "Apple"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        -64
+      ],
+      "id": "c856f505-cad2-4d24-8555-08bd4eacc6fd",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "wPb6acjEoM509e2R",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        272,
+        160
+      ],
+      "id": "68f3d3d6-d6e2-4cf3-b21f-2db9267f88b3",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "xxCKidefkQSp1iKf",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "=Apple report",
+                "value": "={{ $json.name }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        160
+      ],
+      "id": "3db10fa4-858f-423f-97a8-b4b8ee923165",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "content": "# Knowledge Base\n",
+        "height": 464,
+        "width": 928
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        -160
+      ],
+      "id": "a010d410-23ab-4602-a1e3-b618139143ee",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# RAG Chatbot",
+        "height": 608,
+        "width": 864,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        608,
+        -160
+      ],
+      "id": "4e10b8a9-86b8-465b-a73f-506daadfe29d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are an expert AI financial analyst for Apple Inc. Your role is to answer questions strictly based on the provided retrieved documents.\n\n**CRITICAL RULES FOR ACCURACY:**\n1. **Fiscal Year Logic:** Apple's Fiscal Year (FY) starts in October, NOT January.\n   - **Q1:** Ends in December.\n   - **Q2:** Ends in March.\n   - **Q3:** Ends in June.\n   - **Q4:** Ends in September.\n2. **Metadata Priority:** Always check the `fileName` metadata (e.g., \"FY25_Q1\") to confirm the quarter. If the user asks for \"Q1\", look for \"Q1\" in the filename, regardless of the calendar month mentioned in the text.\n3. **No Hallucinations:** If the specific data point is missing in the context, explicitly state \"Insufficient data.\"\n\n**RESPONSE GUIDELINES:**\n- Be concise, professional, and data-driven.\n- Always cite the specific report/source name.\n- Respond in the same language as the user."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        848,
+        -96
+      ],
+      "id": "a9b27c54-56d8-4668-98b5-39ebaae5ba3c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        656,
+        -96
+      ],
+      "id": "8bc7d4c9-92fa-4b2d-a547-c1f3c9ee3601",
+      "name": "When chat message received",
+      "webhookId": "10b87b30-e917-42c0-beeb-c4a53c42e4e4",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "description": "Returns documents related to Apple some quarter reports, including financials, outlook, margins, and all key details from the earnings reports."
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1.1,
+      "position": [
+        1168,
+        0
+      ],
+      "id": "6ac2102a-01af-4d6f-8985-29c2dd0ff405",
+      "name": "Answer questions with a vector store"
+    },
+    {
+      "parameters": {
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "ragn8n",
+          "mode": "list",
+          "cachedResultName": "ragn8n"
+        },
+        "options": {
+          "pineconeNamespace": "Apple"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        1088,
+        160
+      ],
+      "id": "fc189ae6-73c5-49ea-8a3d-abce917987f0",
+      "name": "Pinecone Vector Store1",
+      "credentials": {
+        "pineconeApi": {
+          "id": "wPb6acjEoM509e2R",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        320
+      ],
+      "id": "879ea581-4765-4dd6-9497-61b5b8b02d1a",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "xxCKidefkQSp1iKf",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        848,
+        112
+      ],
+      "id": "0a7981f3-9f29-43be-8d1d-ac9478a524e2",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "wl0Kvk7J1eVt5gcy",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        160
+      ],
+      "id": "0e43650a-6786-45b4-8dc4-f12414f3c5e9",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "wl0Kvk7J1eVt5gcy",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        144
+      ],
+      "id": "72c6b805-e1b1-4288-a2c4-ed2b17f148bb",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1jI0nOJsSgV3g0GT8Dx24dsXc_E67_MSt",
+            "mode": "list",
+            "cachedResultName": "RAG",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1jI0nOJsSgV3g0GT8Dx24dsXc_E67_MSt"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -96,
+        144
+      ],
+      "id": "69b95b26-6a83-4b21-993f-cc2b90f15078",
+      "name": "Search files and folders",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "BrB5fsFYaNmm4OZs",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "fileName": "={{ $json.name }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        48,
+        144
+      ],
+      "id": "122f556c-bf30-429c-9ee7-bfbe1a6c4f14",
+      "name": "Download file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "BrB5fsFYaNmm4OZs",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 6
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        944,
+        112
+      ],
+      "id": "22504205-93d3-43c1-b17c-c1dfbaf5ce30",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "GZ6eWeV4xcJFtlIz",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer questions with a vector store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store1": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Answer questions with a vector store",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Answer questions with a vector store",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search files and folders": {
+      "main": [
+        [
+          {
+            "node": "Download file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file1": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "714a98ce-7921-4b22-aad6-64f54c62f0a4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bfd4796d6b5822566f3cd38bba173ebe3aeb56b47ffc96a39f091eac9d0bb9ee"
+  },
+  "id": "pnAx4dVhmXSvD1mf",
+  "tags": []
+}
