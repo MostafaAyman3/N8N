@@ -1,0 +1,391 @@
+{
+  "name": "Health chatbot production",
+  "nodes": [
+    {
+      "parameters": {
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=You are HealthHub Bot, a medical assistant chatbot inside the Health Hub application.\n\nAt the start of every new conversation, always greet the user with exactly:\n\"أهلاً بيك 👋، اسمي HealthHub Bot. أقدر أساعدك بنصايح طبية وتشخيصات أولية، وأرشحلك دكتور مناسب لحالتك أو أحجزلك موعد مع دكتور.\"\n\nYour responsibilities:\n\n1. Provide preliminary medical guidance only. Never give final diagnosis or medical prescriptions.\n\n2. Ask follow-up questions when needed to better understand the user's symptoms.\n\n3. Recommend the most appropriate medical specialty based on the symptoms.\n\n4. Retrieve and suggest available doctors based on the selected specialty.\n\n5. Display doctors in a simple, clean chat format:\n   - Doctor name\n   - Specialty\n   - Years of experience only\n   Do NOT show fees unless explicitly requested.\n\n6. Help the user book an appointment when they request it.\n\n7. Before confirming a booking:\n   - Check the doctor's already booked time slots.\n   - Suggest only available time slots.\n\n8. When the user selects a doctor and confirms a time:\n   - Collect the required booking details.\n   - Prepare booking data for the backend API (do NOT write directly to any database).\n\n9. After a successful booking confirmation from the backend API:\n   - Send an email to the doctor using the Gmail tool.\n   - The email must include:\n     - Patient full name\n     - Phone number\n     - Appointment date\n     - Appointment time\n     - Booking status\n     - Current date and time\n\n10. Always respond in the same language the user is using.\n\n11. Keep responses short, clear, friendly, and conversational. Avoid long explanations.\n\n12. Only respond to healthcare-related topics. Politely refuse unrelated topics.\n\n13. If symptoms indicate a serious or emergency condition, calmly advise the user to seek immediate medical attention.\n\n---\n\n## 📋 Booking Information Rules\n\nBefore triggering a booking request, you must collect:\n\n- Full name\n- Phone number\n- Preferred date (YYYY-MM-DD)\n- Preferred time (HH:mm)\n- Email (optional)\n\nIf the doctor’s consultation fee is available, always inform the user of the cost at the beginning of the booking confirmation message.\n\n---\n\n## 🧾 Doctor List Response Format (normal chat text)\n\nالدكاترة المتاحين حالياً:\n\nد. Mai – باطنة – خبرة 4 سنوات  \nد. Mahmoud – باطنة – خبرة 5 سنوات  \nد. Mohamed – باطنة – خبرة 5 سنوات  \n\nاختار رقم الدكتور اللي حابب تحجز معاه.\n\n---\n\n## 🔐 Important Technical Rules\n\n- Never generate or guess any database IDs.\n- Doctor IDs and User IDs are always provided by the system.\n- You only choose values for:\n  - date\n  - time\n  - day\n\n- Do NOT insert directly into any database.\n- All bookings must be sent through the backend API using the booking tool.\n\n- Return only clean values without extra text when using tools.\n\nThe current date and time is: {{ $now.toString() }}\n\n##Example – Tool Usage\n\nUser: عايز أحجز مع د. Mai يوم 2026-01-25 الساعة 09:30.\n\nSystem provides:\ndoctorId = \"69298af249f30a8007ae2da9\"\n\nYou should call the booking tool with:\n\ndoctorId: \"69298af249f30a8007ae2da9\"\ndate: \"2026-01-25\"\ntime: \"09:30\"\nday: \"SUN\"\n\nDo not add any text before or after the tool call.\n\n- If the booking tool returns an error indicating that the selected time or date is unavailable, already booked, or violates booking rules:\n  - Do NOT show technical error messages to the user.\n  - Politely inform the user that the selected time is no longer available.\n  - Ask the user to choose a different date or time.\n  - Keep the message short, friendly, and reassuring.\n  - Do NOT call the booking tool again until the user provides a new date or time.\n\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        512,
+        -32
+      ],
+      "id": "398e49de-5a35-46ea-a071-4153620cb8b8",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        64,
+        272
+      ],
+      "id": "6e15da88-3ba9-479c-baf8-35ab416ed3d2",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "vK4lwzxZuJaZnsgd",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Health Hub Chatbot\n",
+        "height": 640,
+        "width": 1040
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        16,
+        -112
+      ],
+      "id": "6b1c6282-4218-48b2-818e-cfde693913dd",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.5,
+      "position": [
+        -480,
+        160
+      ],
+      "id": "104d8481-5cee-4956-9200-8185770952ac",
+      "name": "Redis Chat Memory",
+      "credentials": {
+        "redis": {
+          "id": "ovCyFYi80xTp45yZ",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 8
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        272
+      ],
+      "id": "08a6543e-e3a2-4148-a7a5-f3aeb69bc354",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "9gsCImGZG69E3LAJ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Send an appointment as a message in Gmail",
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "emailType": "text",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        272
+      ],
+      "id": "4fbf4b47-f867-4524-bb1f-07fbf0d0ed04",
+      "name": "Send a message in Gmail",
+      "webhookId": "c51c6a22-57bc-47ec-9f4b-2b0cba8d57a6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "s3fc0WO9lDXvuNEP",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get doctors data from database \nTHE \n  \"name\"\n  \"speciality\"\n  \"experience\"\n  \"fees\"\n  \"about\"\n  \"addressOne\"\n",
+        "collection": "doctors",
+        "options": {
+          "projection": "{\n  \"name\": 1, \n  \"email\":1,\n  \"speciality\": 1,\n  \"experience\": 1,\n  \"fees\": 1,\n  \"about\": 1,\n  \"addressOne\": 1\n}"
+        }
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        272
+      ],
+      "id": "e452990b-5124-433d-a021-0bd3409919a1",
+      "name": "Get doctors data from database",
+      "credentials": {
+        "mongoDb": {
+          "id": "02jHX0f4J2iHQbQ2",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Retrieve all booked appointment slots for a specific doctor.\n\nThis tool is used to check which appointment times are already occupied so the assistant can suggest only available time slots to the user.\n\nThe doctor ID is provided automatically by the model as:\nparameters1_Value\n\nRules:\n- parameters1_Value must contain a valid MongoDB ObjectId string of the selected doctor.\n- Do NOT modify, translate, or invent this value.\n- Only retrieve appointments where status is \"pending\" or \"approved\".\n- Ignore rejected or cancelled appointments.\n- Return only the following fields using projection:\n  - date (YYYY-MM-DD)\n  - time (HH:mm)\n  - day (MON–SUN)\n  - status\n\n",
+        "collection": "appointments",
+        "options": {
+          "projection": "={\n  \"date\": 1,\n  \"time\": 1,\n  \"day\": 1,\n  \"status\": 1\n}"
+        },
+        "query": "={\n  \"doctor\": \"={{ $fromAI('parameters1_Value', `The unique ID of the doctor selected by the user for booking.\nMust be a valid MongoDB ObjectId string exactly as provided by the system.\nDo NOT modify, translate, or invent this value.\nExample: \"69298af249f30a8007ae2da9\"\n`, 'string') }}\",\n  \"status\": {\n    \"$in\": [\"pending\", \"approved\"]\n  }\n}\n"
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        272
+      ],
+      "id": "6904fc10-a248-4da7-b7e4-8721132298c6",
+      "name": "Get appointments from database",
+      "credentials": {
+        "mongoDb": {
+          "id": "02jHX0f4J2iHQbQ2",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Insert an appointment in MongoDB\nyou should fill the fields and data based on the user need \nthis example for the data should be like this \n\n{\n  \n  \n\"_id\": \n\"694cd69466619a3225aba843\",\n  \n  \n\"user\": \n\"694c001b7376e48f7ba8f757\",\n  \n  \n\"doctor\": \n\"6932df289d52f1dd82cdbda8\",\n  \n  \n\"date\": \n\"2025-12-25\",\n  \n  \n\"time\": \n\"09:00\",\n  \n  \n\"day\": \n\"Thu\",\n  \n  \n\"status\": \n\"pending\",\n  \n  \n\"paymentMethod\": \n\"cash\",\n  \n  \n\"createdAt\": \n\"2025-12-25T06:15:48.641Z\",\n  \n  \n\"updatedAt\": \n\"2025-12-25T06:15:48.641Z\",\n  \n  \n\"__v\": \n0\n  \n},",
+        "operation": "insert",
+        "collection": "appointments",
+        "fields": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Fields', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        144
+      ],
+      "id": "04e91f47-d6a2-4e11-8235-817877165d90",
+      "name": "Make an appointment",
+      "credentials": {
+        "mongoDb": {
+          "id": "02jHX0f4J2iHQbQ2",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "مرحباً! 👨‍⚕️ أنا المساعد الطبي الذكي. كيف يمكنني مساعدتك اليوم؟",
+        "options": {
+          "customCss": ":root{\n  --chat--header--background: linear-gradient(90deg,#2563eb,#1e40af);\n  --chat--header--padding: 12px 16px;\n  --chat--heading--font-size: 1rem;\n  --chat--subtitle--font-size: 0.85rem;\n  --chat--window--height: 620px;\n}\n\n/* --- Compact header / hero --- */\n.chat-header,\n.chat-window__header,\n.header,\n.n8n-chat-header,\n.chat-hero,\n.hero-banner {\n  max-height: 78px !important;\n  height: auto !important;\n  padding: 10px 16px !important;\n  overflow: hidden !important;\n  background: linear-gradient(90deg,#2563eb,#1e40af) !important;\n  box-shadow: none !important;\n  border-bottom-left-radius: 12px !important;\n  border-bottom-right-radius: 12px !important;\n}\n\n/* Title + subtitle smaller and aligned */\n.chat-header .title,\n.chat-window__header .title,\n.chat-header__title,\n.header-title,\n.header .title {\n  font-size: 1rem !important;\n  font-weight: 600 !important;\n  margin: 0 !important;\n  line-height: 1.1 !important;\n  color: #fff !important;\n}\n\n/* Subtitle */\n.chat-header .subtitle,\n.chat-window__header .subtitle,\n.header-subtitle {\n  font-size: 0.82rem !important;\n  margin-top: 4px !important;\n  color: rgba(255,255,255,0.92) !important;\n}\n\n/* Remove large empty space under header (safe padding reduction) */\n.chat-window__body,\n.chat-body,\n.messages-list,\n.chat-messages {\n  padding-top: 10px !important;\n}\n\n/* Quick replies / options alignment (centered, compact) */\n.quick-replies,\n.options-list,\n.buttons-list,\n.chat-actions {\n  display: block !important;\n  max-width: 820px !important;\n  margin: 8px auto !important;\n  gap: 8px !important;\n}\n\n/* Message bubble width and spacing */\n.chat-message {\n  max-width: 72% !important;\n  margin-bottom: 10px !important;\n  box-shadow: 0 3px 10px rgba(2,6,23,0.06) !important;\n}\n\n/* Input bar slight lift */\n.chat-input,\n.chat-footer,\n.footer {\n  padding: 10px 14px !important;\n  background: rgba(255,255,255,0.98) !important;\n}\n\n/* Optional: hide very large hero image if present */\n.chat-hero .hero-image,\n.hero-banner .hero-image {\n  max-height: 0 !important;\n  opacity: 0 !important;\n  visibility: hidden !important;\n}\n\n/* Fallback safe visual polish */\n.chat-window {\n  border-radius: 14px !important;\n  overflow: hidden !important;\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        96,
+        0
+      ],
+      "id": "48a957a9-f611-4a71-8ed3-f25651d860a0",
+      "name": "When chat message received",
+      "webhookId": "8430493e-70d8-4c7d-8d31-90508ba45fe6"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        208,
+        272
+      ],
+      "id": "fa32b304-8862-4e1f-870b-a3662d2c3d93",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "6XZrjr4pBCvBasGH",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Send a confirmed appointment booking request to the HealthHub backend API.\n\nThis tool is used only after:\n- The user has selected a doctor.\n- The user has confirmed the preferred date and time.\n- All required booking details are collected.\n\nThe tool sends the following data to the backend:\n- doctorId: The selected doctor's unique ID (provided by the system).\n- date: Appointment date in format YYYY-MM-DD.\n- time: Appointment time in format HH:mm.\n- day: Day of week in uppercase (MON, TUE, WED, THU, FRI, SAT, SUN).\n\nDo NOT generate or modify IDs.\nSend only valid formatted values.\nDo not include any extra text outside the parameters.\n",
+        "method": "POST",
+        "url": "https://health-hub-backend.vercel.app/api/appointment/chat",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=id",
+              "value": "={{ $json.metadata?.userID ?? \"696e4c23cf96ab6fee74489f\" }}"
+            },
+            {
+              "name": "doctorId",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters1_Value', `The unique ID of the doctor selected by the user for booking.\nMust be a valid MongoDB ObjectId string exactly as provided by the system.\nDo NOT modify, translate, or invent this value.\nExample: \"69298af249f30a8007ae2da9\"\n`, 'string') }}"
+            },
+            {
+              "name": "time",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters2_Value', `The selected appointment time chosen by the user.\nMust be in 24-hour format \"HH:mm\".\nExample: \"09:30\", \"14:00\".\nDo not include AM/PM or any text.\n`, 'string') }}"
+            },
+            {
+              "name": "date",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters3_Value', `The selected appointment date chosen by the user.\nMust be in ISO format \"YYYY-MM-DD\".\nExample: \"2026-01-25\".\nDo not include time or any extra text.\n`, 'string') }}"
+            },
+            {
+              "name": "day",
+              "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters4_Value', `Day of the week corresponding to the selected date.\nMust be one of: MON, TUE, WED, THU, FRI, SAT, SUN.\nAlways uppercase.\nExample: \"SUN\".\n`, 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        768,
+        272
+      ],
+      "id": "b173ebc0-6351-4629-a46b-f1213c6a8755",
+      "name": "Make an appointment1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Chat Memory": {
+      "ai_memory": [
+        []
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get doctors data from database": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get appointments from database": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make an appointment": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Make an appointment1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "8c4f7390-abe7-4baf-886c-edad000dca39",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a70b81ac3afc26d7083b6ec0b8c8e4c6ee15825cc3e8a794fcf6ee7b70c96393"
+  },
+  "id": "lvklxrYSE1F4K3KE",
+  "tags": []
+}
